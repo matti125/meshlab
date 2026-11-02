@@ -427,6 +427,10 @@ protected:
     void tabletEvent(QTabletEvent *e);
     void hideEvent(QHideEvent * event);
 
+private slots:
+    void onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry, float rz);
+    void onSpaceMouseButtons(unsigned int pressed, unsigned int released);
+
 private:
     void renderingFacilityString();
     QString renderfacility;

@@ -50,6 +50,8 @@
 using namespace std;
 using namespace vcg;
 
+#include "spacemouse.h"
+
 GLArea::GLArea(QWidget *parent, MultiViewer_Container *mvcont, RichParameterList *current)
     : QGLWidget(parent,mvcont->sharedDataContext()),interrbutshow(false)
 {
@@ -71,6 +73,8 @@ GLArea::GLArea(QWidget *parent, MultiViewer_Container *mvcont, RichParameterList
     helpVisible=false;
     takeSnapTile=false;
     activeDefaultTrackball=true;
+    connect(&SpaceMouse::instance(), &SpaceMouse::motion, this, &GLArea::onSpaceMouseMotion);
+    connect(&SpaceMouse::instance(), &SpaceMouse::buttonsChanged, this, &GLArea::onSpaceMouseButtons);
     infoAreaVisible = true;
     trackBallVisible = glas.startupShowTrackball;
     currentShader = NULL;
@@ -1371,6 +1375,48 @@ void GLArea::mouseDoubleClickEvent ( QMouseEvent * e )
 		pointToPick = Point2i(QT2VCG_X(this, e), QT2VCG_Y(this, e));
 	}
     update();
+}
+
+void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry, float rz)
+{
+	// only the viewer the user is working in reacts
+	if (!isVisible() || mvc()->currentView() != this || (iEdit && !suspendedEditor))
+		return;
+	const float dead = 0.04f;
+	auto dz = [&](float v) { return std::fabs(v) < dead ? 0.0f : v; };
+	tx = dz(tx); ty = dz(ty); tz = dz(tz); rx = dz(rx); ry = dz(ry); rz = dz(rz);
+	if (tx == 0 && ty == 0 && tz == 0 && rx == 0 && ry == 0 && rz == 0)
+		return;
+
+	const float rotGain = 0.03f;   // rad per event at full deflection
+	const float panGain = 0.02f;   // fraction of trackball radius
+	const float zoomGain = 0.03f;
+
+	// Rotation about view axes, composed in view space.
+	vcg::Point3f axis(rx, ry, rz);
+	float ang = axis.Norm() * rotGain;
+	if (ang > 0) {
+		axis.Normalize();
+		trackball.track.rot = vcg::Quaternionf(ang, axis) * trackball.track.rot;
+	}
+	// Pan in view plane, expressed in object space like Trackball::Translate.
+	vcg::Quaternionf irot = trackball.track.rot;
+	irot.Invert();
+	trackball.track.tra += irot.Rotate(vcg::Point3f(tx, ty, 0) * panGain * trackball.radius) / trackball.track.sca;
+	// Push/pull = zoom
+	trackball.track.sca *= std::exp(tz * zoomGain);
+
+	update();
+}
+
+void GLArea::onSpaceMouseButtons(unsigned int pressed, unsigned int)
+{
+	if (!isVisible() || mvc()->currentView() != this)
+		return;
+	if (pressed & 0x1) { // button 1: reset view
+		trackball.Reset();
+		update();
+	}
 }
 
 void GLArea::focusInEvent ( QFocusEvent * e )
