@@ -5,6 +5,7 @@ set(SOURCES
 	additionalgui.cpp
 	glarea.cpp
 	glarea_setting.cpp
+	spacemouse.cpp
 	layerDialog.cpp
 	main.cpp
 	mainwindow_Init.cpp
@@ -30,6 +31,7 @@ set(HEADERS
 	additionalgui.h
 	glarea.h
 	glarea_setting.h
+	spacemouse.h
 	layerDialog.h
 	mainwindow.h
 	ml_default_decorators.h
@@ -81,6 +83,15 @@ target_link_libraries(
 
 set_property(TARGET meshlab PROPERTY FOLDER Core)
 if (APPLE)
+	find_library(CONNEXION_FRAMEWORK 3DconnexionClient)
+	if (CONNEXION_FRAMEWORK)
+		message(STATUS "3Dconnexion client found: SpaceMouse support enabled")
+		target_compile_definitions(meshlab PRIVATE MESHLAB_SPACEMOUSE)
+		get_filename_component(CONNEXION_FRAMEWORK_DIR ${CONNEXION_FRAMEWORK} DIRECTORY)
+		target_compile_options(meshlab PRIVATE -F${CONNEXION_FRAMEWORK_DIR})
+		# weak link so MeshLab still starts when the 3DxWare driver is absent
+		target_link_libraries(meshlab PRIVATE "-F${CONNEXION_FRAMEWORK_DIR}" "-weak_framework 3DconnexionClient")
+	endif()
 	set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/images/meshlab.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 	file(COPY ${MESHLAB_RESOURCES_DIR}/icons/meshlab.icns DESTINATION "${MESHLAB_BUILD_DISTRIB_DIR}/meshlab.app/Contents/Resources/")
 	set_target_properties(meshlab PROPERTIES
