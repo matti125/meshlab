@@ -22,6 +22,7 @@
  ****************************************************************************/
 
 #include <QToolBar>
+#include <QCoreApplication>
 #include <QProgressBar>
 #include <QNetworkRequest>
 #include <QNetworkReply>
@@ -1280,6 +1281,9 @@ void MainWindowSetting::initGlobalParameterList(RichParameterList& gbllist)
 	gbllist.addParam(RichInt(startupWindowHeightParam(), 0, "Startup Window Height (in pixels)", "Window height on startup"));
 	gbllist.addParam(RichString(meshSetNameParam(), "ms", "Name of the MeshSet object.", "Set the MeshSet name object in the PyMeshLab call copied in the clipboard from the filter dock dialog."));
 	gbllist.addParam(RichBool(checkForUpdateParam(), true, "Automatic online check for updated version of MeshLab", "If true, MeshLab periodically will check online if a new version has been released"));
+	gbllist.addParam(RichEnum(qualityMapperDefaultScaleParam(), 1,
+		QStringList() << "Grey Scale" << "Meshlab RGB" << "RGB" << "Red-White-Blue Scale" << "Red Scale" << "Green Scale" << "Blue Scale" << "Flat" << "SawTooth Gray 4" << "SawTooth Gray 8",
+		"Quality Mapper default color scale", "Color scale (transfer function) the Quality Mapper starts with. Takes effect the next time the Quality Mapper is started."));
 	gbllist.addParam(RichBool(sendAnonymousDataParam(), true, "Send anonymous and aggregate statistics", "If true, MeshLab periodically will send a few aggregated statistic of usage (number of opened and saved mesh and total number of vertices loaded)"));
 }
 
@@ -1297,6 +1301,9 @@ void MainWindowSetting::updateGlobalParameterList(const RichParameterList& rpl)
 	meshSetName = rpl.getString(meshSetNameParam());
 	checkForUpdate = rpl.getBool(checkForUpdateParam());
 	sendAnonymousData = rpl.getBool(sendAnonymousDataParam());
+	qualityMapperDefaultScale = rpl.getEnum(qualityMapperDefaultScaleParam());
+	// the edit_quality plugin reads this when the tool is started
+	QCoreApplication::instance()->setProperty("MeshLab::QualityMapper::defaultScale", qualityMapperDefaultScale);
 }
 
 void MainWindow::defaultPerViewRenderingData(MLRenderingData& dt) const

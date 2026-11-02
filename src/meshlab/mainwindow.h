@@ -101,6 +101,9 @@ public:
 
 	bool sendAnonymousData;
 	inline static QString sendAnonymousDataParam() {return "MeshLab::System::sendAnonymousData"; }
+
+	int qualityMapperDefaultScale;
+	inline static QString qualityMapperDefaultScaleParam() {return "MeshLab::QualityMapper::defaultScale"; }
 };
 
 class MainWindow : public QMainWindow
