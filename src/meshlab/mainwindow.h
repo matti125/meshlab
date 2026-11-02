@@ -106,6 +106,9 @@ public:
 	// matching extension is opened, the edit tool or filter with that name is started.
 	QMap<QString, QString> autoStartTools; // lowercase extension -> tool name
 	inline static QString autoStartToolParam() {return "MeshLab::GUI::autoStartTool"; }
+
+	int qualityMapperDefaultScale;
+	inline static QString qualityMapperDefaultScaleParam() {return "MeshLab::QualityMapper::defaultScale"; }
 };
 
 class MainWindow : public QMainWindow

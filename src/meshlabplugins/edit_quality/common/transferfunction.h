@@ -36,6 +36,8 @@ FIRST RELEASE
 #include <cassert>
 #include <QString>
 #include <QColor>
+#include <QCoreApplication>
+#include <QVariant>
 #include "const_types.h"
 #include "util.h"
 
@@ -187,7 +189,18 @@ enum DEFAULT_TRANSFER_FUNCTIONS
 
 //code of the default startup Transfer Function
 //When the plugin is launched, a TF is built using this code
-#define STARTUP_TF_TYPE		MESHLAB_RGB_TF
+//The application can override it by setting the "MeshLab::QualityMapper::defaultScale"
+//property (an index of DEFAULT_TRANSFER_FUNCTIONS) on the QCoreApplication
+inline DEFAULT_TRANSFER_FUNCTIONS startupTransferFunctionType()
+{
+	QVariant v = QCoreApplication::instance() ?
+		QCoreApplication::instance()->property("MeshLab::QualityMapper::defaultScale") : QVariant();
+	int idx = v.isValid() ? v.toInt() : (int)MESHLAB_RGB_TF;
+	if (idx < 0 || idx >= NUMBER_OF_DEFAULT_TF)
+		idx = (int)MESHLAB_RGB_TF;
+	return (DEFAULT_TRANSFER_FUNCTIONS)idx;
+}
+#define STARTUP_TF_TYPE		startupTransferFunctionType()
 
 
 //Representation of a Transfer Function as a set of channels
