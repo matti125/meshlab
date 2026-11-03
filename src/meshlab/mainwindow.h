@@ -107,6 +107,9 @@ public:
 	QMap<QString, QString> autoStartTools; // lowercase extension -> tool name
 	inline static QString autoStartToolParam() {return "MeshLab::GUI::autoStartTool"; }
 
+	bool spaceMouseDuringEdit; // keep moving the camera with the SpaceMouse while an edit tool is active
+	inline static QString spaceMouseDuringEditParam() {return "MeshLab::GUI::spaceMouseDuringEdit"; }
+
 	int qualityMapperDefaultScale;
 	inline static QString qualityMapperDefaultScaleParam() {return "MeshLab::QualityMapper::defaultScale"; }
 };

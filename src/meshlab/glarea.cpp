@@ -1380,7 +1380,15 @@ void GLArea::mouseDoubleClickEvent ( QMouseEvent * e )
 void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry, float rz)
 {
 	// only the viewer the user is working in reacts
-	if (!isVisible() || mvc()->currentView() != this || (iEdit && !suspendedEditor))
+	static const char* lastDrop = nullptr;
+	const char* drop = !isVisible() ? "view not visible"
+		: mvc()->currentView() != this ? "not the current view"
+		: (iEdit && !suspendedEditor && !QCoreApplication::instance()->property("MeshLab::SpaceMouse::duringEdit").toBool()) ? "edit tool active" : nullptr;
+	if (drop != lastDrop) { // log only changes of state
+		qDebug("SpaceMouse: %s", drop ? drop : "accepting motion again");
+		lastDrop = drop;
+	}
+	if (drop)
 		return;
 
 	// Seconds since the previous event; the first one after a pause gets a nominal frame.
@@ -1424,6 +1432,21 @@ void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry
 	trackball.track.tra += irot.Rotate(vcg::Point3f(tx, ty, 0) * panGain * dt * trackball.radius) / trackball.track.sca;
 	// Push/pull = zoom
 	trackball.track.sca *= std::exp(tz * (tz < 0 ? zoomPull : zoomGain) * dt);
+	// Keep the trackball finite: unbounded zooming overflows the scale to 0/inf/NaN,
+	// after which the view can no longer be moved at all.
+	if (!std::isfinite(trackball.track.sca))
+		trackball.track.sca = 1.0f;
+	trackball.track.sca = std::min(std::max(trackball.track.sca, 1e-4f), 1e4f);
+	if (!std::isfinite(trackball.track.tra.Norm()))
+		trackball.track.tra = vcg::Point3f(0, 0, 0);
+
+	static QElapsedTimer lastLog;
+	if (!lastLog.isValid() || lastLog.elapsed() > 1000) {
+		lastLog.restart();
+		qDebug("SpaceMouse: t=(%.2f %.2f %.2f) r=(%.2f %.2f %.2f) sca=%g tra=(%g %g %g)",
+		       tx, ty, tz, rx, ry, rz, trackball.track.sca,
+		       trackball.track.tra[0], trackball.track.tra[1], trackball.track.tra[2]);
+	}
 
 	update();
 }

@@ -1295,6 +1295,7 @@ void MainWindowSetting::initGlobalParameterList(RichParameterList& gbllist, cons
 	gbllist.addParam(RichString(meshSetNameParam(), "ms", "Name of the MeshSet object.", "Set the MeshSet name object in the PyMeshLab call copied in the clipboard from the filter dock dialog."));
 	gbllist.addParam(RichBool(checkForUpdateParam(), true, "Automatic online check for updated version of MeshLab", "If true, MeshLab periodically will check online if a new version has been released"));
 	gbllist.addParam(RichString(autoStartToolParam(), "", "Tools to start automatically after opening a file", "Semicolon separated list of rules \"extension=Tool name\" (e.g. \"ply=Quality Mapper\"). After a file with that extension is opened, the named edit tool or filter is started. A tool name is the text of its menu entry: for filters, the name shown in the Filters menu. Leave empty to disable." + (editToolNames.isEmpty() ? QString() : " Available edit tools: " + editToolNames.join(", ") + ".")));
+	gbllist.addParam(RichBool(spaceMouseDuringEditParam(), false, "Use the SpaceMouse while an edit tool is active", "If true, the SpaceMouse keeps moving the camera while an edit tool is active. Otherwise it is ignored until the tool is closed."));
 	gbllist.addParam(RichEnum(qualityMapperDefaultScaleParam(), 1,
 		QStringList() << "Grey Scale" << "Meshlab RGB" << "RGB" << "Red-White-Blue Scale" << "Red Scale" << "Green Scale" << "Blue Scale" << "Flat" << "SawTooth Gray 4" << "SawTooth Gray 8",
 		"Quality Mapper default color scale", "Color scale (transfer function) the Quality Mapper starts with. Takes effect the next time the Quality Mapper is started."));
@@ -1328,6 +1329,8 @@ void MainWindowSetting::updateGlobalParameterList(const RichParameterList& rpl)
 		if (!ext.isEmpty() && !tool.isEmpty())
 			autoStartTools[ext] = tool;
 	}
+	spaceMouseDuringEdit = rpl.getBool(spaceMouseDuringEditParam());
+	QCoreApplication::instance()->setProperty("MeshLab::SpaceMouse::duringEdit", spaceMouseDuringEdit);
 	qualityMapperDefaultScale = rpl.getEnum(qualityMapperDefaultScaleParam());
 	// the edit_quality plugin reads this when the tool is started
 	QCoreApplication::instance()->setProperty("MeshLab::QualityMapper::defaultScale", qualityMapperDefaultScale);
