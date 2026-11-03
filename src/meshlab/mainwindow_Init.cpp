@@ -1280,6 +1280,7 @@ void MainWindowSetting::initGlobalParameterList(RichParameterList& gbllist)
 	gbllist.addParam(RichInt(startupWindowHeightParam(), 0, "Startup Window Height (in pixels)", "Window height on startup"));
 	gbllist.addParam(RichString(meshSetNameParam(), "ms", "Name of the MeshSet object.", "Set the MeshSet name object in the PyMeshLab call copied in the clipboard from the filter dock dialog."));
 	gbllist.addParam(RichBool(checkForUpdateParam(), true, "Automatic online check for updated version of MeshLab", "If true, MeshLab periodically will check online if a new version has been released"));
+	gbllist.addParam(RichBool(spaceMouseDuringEditParam(), false, "Use the SpaceMouse while an edit tool is active", "If true, the SpaceMouse keeps moving the camera while an edit tool is active. Otherwise it is ignored until the tool is closed."));
 	gbllist.addParam(RichBool(sendAnonymousDataParam(), true, "Send anonymous and aggregate statistics", "If true, MeshLab periodically will send a few aggregated statistic of usage (number of opened and saved mesh and total number of vertices loaded)"));
 }
 
@@ -1297,6 +1298,8 @@ void MainWindowSetting::updateGlobalParameterList(const RichParameterList& rpl)
 	meshSetName = rpl.getString(meshSetNameParam());
 	checkForUpdate = rpl.getBool(checkForUpdateParam());
 	sendAnonymousData = rpl.getBool(sendAnonymousDataParam());
+	spaceMouseDuringEdit = rpl.getBool(spaceMouseDuringEditParam());
+	QCoreApplication::instance()->setProperty("MeshLab::SpaceMouse::duringEdit", spaceMouseDuringEdit);
 }
 
 void MainWindow::defaultPerViewRenderingData(MLRenderingData& dt) const

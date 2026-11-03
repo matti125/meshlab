@@ -101,6 +101,8 @@ public:
 
 	bool sendAnonymousData;
 	inline static QString sendAnonymousDataParam() {return "MeshLab::System::sendAnonymousData"; }
+	bool spaceMouseDuringEdit; // keep moving the camera with the SpaceMouse while an edit tool is active
+	inline static QString spaceMouseDuringEditParam() {return "MeshLab::GUI::spaceMouseDuringEdit"; }
 };
 
 class MainWindow : public QMainWindow
