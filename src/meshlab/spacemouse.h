@@ -24,7 +24,9 @@ private:
 	SpaceMouse();
 	~SpaceMouse();
 	friend void spaceMouseDispatch(const void* state);
+	friend void spaceMouseDeviceAdded();
 	void handleState(const void* state);
+	void registerClient();
 
 	bool registered = false;
 	unsigned short clientId = 0;
