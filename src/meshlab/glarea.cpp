@@ -1382,29 +1382,48 @@ void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry
 	// only the viewer the user is working in reacts
 	if (!isVisible() || mvc()->currentView() != this || (iEdit && !suspendedEditor))
 		return;
-	const float dead = 0.04f;
-	auto dz = [&](float v) { return std::fabs(v) < dead ? 0.0f : v; };
-	tx = dz(tx); ty = dz(ty); tz = dz(tz); rx = dz(rx); ry = dz(ry); rz = dz(rz);
+
+	// Seconds since the previous event; the first one after a pause gets a nominal frame.
+	static QElapsedTimer clock;
+	float dt = clock.isValid() ? clock.nsecsElapsed() * 1e-9f : 0.0f;
+	clock.restart();
+	if (dt <= 0.0f || dt > 0.1f)
+		dt = 1.0f / 60.0f;
+
+	// Small dead zone, rescaled so the output starts from 0 at its edge (no
+	// jump), then an exponent > 1 for fine control near the centre.
+	const float dead = 2.0f / 350.0f; // 2 raw units
+	const float expo = 1.5f;
+	auto shape = [&](float v) {
+		float a = std::fabs(v);
+		if (a <= dead)
+			return 0.0f;
+		a = std::pow((a - dead) / (1.0f - dead), expo);
+		return v < 0 ? -a : a;
+	};
+	tx = shape(tx); ty = shape(ty); tz = shape(tz); rx = shape(rx); ry = shape(ry); rz = shape(rz);
 	if (tx == 0 && ty == 0 && tz == 0 && rx == 0 && ry == 0 && rz == 0)
 		return;
 
-	const float rotGain = 0.03f;   // rad per event at full deflection
-	const float panGain = 0.02f;   // fraction of trackball radius
-	const float zoomGain = 0.03f;
+	const float rotGain = 2.5f;    // rad/s at full deflection (time-based)
+	const float panGain = 10.0f;    // trackball radii/s at full deflection
+	const float zoomPull = 5.0f;   // e-folds/s, pull
+	const float zoomGain = 1.8f;   // e-folds/s, push
 
 	// Rotation about view axes, composed in view space.
 	vcg::Point3f axis(rx, ry, rz);
-	float ang = axis.Norm() * rotGain;
+	float ang = axis.Norm() * rotGain * dt;
 	if (ang > 0) {
 		axis.Normalize();
 		trackball.track.rot = vcg::Quaternionf(ang, axis) * trackball.track.rot;
+		trackball.track.rot.Normalize(); // keep float error from accumulating
 	}
 	// Pan in view plane, expressed in object space like Trackball::Translate.
 	vcg::Quaternionf irot = trackball.track.rot;
 	irot.Invert();
-	trackball.track.tra += irot.Rotate(vcg::Point3f(tx, ty, 0) * panGain * trackball.radius) / trackball.track.sca;
+	trackball.track.tra += irot.Rotate(vcg::Point3f(tx, ty, 0) * panGain * dt * trackball.radius) / trackball.track.sca;
 	// Push/pull = zoom
-	trackball.track.sca *= std::exp(tz * zoomGain);
+	trackball.track.sca *= std::exp(tz * (tz < 0 ? zoomPull : zoomGain) * dt);
 
 	update();
 }

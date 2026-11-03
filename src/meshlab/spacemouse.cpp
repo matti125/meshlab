@@ -4,20 +4,47 @@
 #include <3DconnexionClient/ConnexionClientAPI.h>
 
 void spaceMouseDispatch(const void* state);
+void spaceMouseDeviceAdded();
 
 namespace {
 constexpr float AXIS_MAX = 350.0f; // typical full-deflection raw value
+
+// Set once the singleton is fully constructed; the driver may call back
+// from inside SetConnexionHandlers, when instance() must not be re-entered.
+SpaceMouse* gInstance = nullptr;
 
 void messageHandler(unsigned int, unsigned int type, void* arg)
 {
 	if (type == kConnexionMsgDeviceState)
 		spaceMouseDispatch(arg);
 }
+
+void addedHandler(unsigned int)
+{
+	spaceMouseDeviceAdded();
+}
 }
 
 void spaceMouseDispatch(const void* state)
 {
-	SpaceMouse::instance().handleState(state);
+	if (gInstance)
+		gInstance->handleState(state);
+}
+
+void spaceMouseDeviceAdded()
+{
+	// A device (re)connecting, e.g. a Bluetooth one waking up, is the cue to
+	// register again if the earlier registration failed or was lost.
+	if (gInstance && !gInstance->registered)
+		gInstance->registerClient();
+}
+
+void SpaceMouse::registerClient()
+{
+	clientId = RegisterConnexionClient(
+		kConnexionClientWildcard, (uint8_t*)"\007MeshLab",
+		kConnexionClientModeTakeOver, kConnexionMaskAll);
+	registered = clientId != 0;
 }
 
 SpaceMouse::SpaceMouse()
@@ -26,16 +53,15 @@ SpaceMouse::SpaceMouse()
 	if (&SetConnexionHandlers == nullptr)
 		return;
 	// Run on the main run loop so signals are emitted on the GUI thread.
-	if (SetConnexionHandlers(messageHandler, nullptr, nullptr, false) != 0)
+	if (SetConnexionHandlers(messageHandler, addedHandler, nullptr, false) != 0)
 		return;
-	clientId = RegisterConnexionClient(
-		kConnexionClientWildcard, (uint8_t*)"\007MeshLab",
-		kConnexionClientModeTakeOver, kConnexionMaskAll);
-	registered = true;
+	registerClient();
+	gInstance = this;
 }
 
 SpaceMouse::~SpaceMouse()
 {
+	gInstance = nullptr;
 	if (registered) {
 		UnregisterConnexionClient(clientId);
 		CleanupConnexionHandlers();
