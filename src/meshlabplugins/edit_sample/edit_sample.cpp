@@ -32,6 +32,8 @@ $Log: meshedit.cpp,v $
 #include <wrap/qt/gl_label.h>
 #include <wrap/qt/device_to_logical.h>
 #include <wrap/gl/pick.h>
+#include <QApplication>
+#include <QClipboard>
 
 using namespace std;
 using namespace vcg;
@@ -113,14 +115,14 @@ void SampleEditPlugin::decorate(MeshModel &m, GLArea * gla, QPainter *p)
 			line2 = QString("FACE# %1<br>").arg(QString::number(tri::Index(m.cm, curFacePtr)));
 			if (NewFaceSel.size() > 1)
 				line3 = "Q to cycle selected faces<br>";
-			line3 += "P to log the details of the face";
+			line3 += "P to log the details of the face, C to copy its vertex positions";
 		}
 		else if (pickmode == 1)
 		{
 			line2 = QString("VERTEX# %1<br>").arg(QString::number(tri::Index(m.cm, curVertPtr)));
 			if (NewVertSel.size() > 1)
 				line3 = "Q to cycle selected vertices<br>";
-			line3 += "P to log the details of the vertex";
+			line3 += "P to log the details of the vertex, C to copy its position";
 		}
 	}
 
@@ -257,6 +259,20 @@ void SampleEditPlugin::keyReleaseEvent(QKeyEvent *e, MeshModel &m, GLArea *gla)
 			curVertPtr = NewVertSel[pIndex];
 		}
 		gla->update();
+	}
+
+	if ((e->key() == Qt::Key_C) && ((curFacePtr != 0) || (curVertPtr != 0))) // copy to clipboard
+	{
+		auto pos = [](const CMeshO::CoordType& c) {
+			return QString("%1 %2 %3").arg(c[0], 0, 'g', 9).arg(c[1], 0, 'g', 9).arg(c[2], 0, 'g', 9);
+		};
+		QString text;
+		if (pickmode == 0)
+			text = pos(curFacePtr->P(0)) + "\n" + pos(curFacePtr->P(1)) + "\n" + pos(curFacePtr->P(2));
+		else
+			text = pos(curVertPtr->P());
+		QApplication::clipboard()->setText(text);
+		this->log(GLLogStream::FILTER, "Copied to clipboard: %s", text.replace('\n', ';').toStdString().c_str());
 	}
 
 	if ((e->key() == Qt::Key_P) && ((curFacePtr != 0) || (curVertPtr != 0))) // tab to next selected mode
