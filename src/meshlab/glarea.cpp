@@ -1380,19 +1380,16 @@ void GLArea::mouseDoubleClickEvent ( QMouseEvent * e )
 void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry, float rz)
 {
 	// only the viewer the user is working in reacts
-	static const char* lastDrop = nullptr;
 	const char* drop = !isVisible() ? "view not visible"
+		: mvc() == nullptr ? "no view container"
 		: mvc()->currentView() != this ? "not the current view"
 		: (iEdit && !suspendedEditor && !QCoreApplication::instance()->property("MeshLab::SpaceMouse::duringEdit").toBool()) ? "edit tool active" : nullptr;
-	if (drop != lastDrop) { // log only changes of state
-		qDebug("SpaceMouse: %s", drop ? drop : "accepting motion again");
-		lastDrop = drop;
-	}
 	if (drop)
 		return;
 
 	// Seconds since the previous event; the first one after a pause gets a nominal frame.
-	static QElapsedTimer clock;
+	static QHash<const GLArea*, QElapsedTimer> clocks; // one per viewer: every viewer sees every event
+	QElapsedTimer& clock = clocks[this];
 	float dt = clock.isValid() ? clock.nsecsElapsed() * 1e-9f : 0.0f;
 	clock.restart();
 	if (dt <= 0.0f || dt > 0.1f)
@@ -1439,14 +1436,6 @@ void GLArea::onSpaceMouseMotion(float tx, float ty, float tz, float rx, float ry
 	trackball.track.sca = std::min(std::max(trackball.track.sca, 1e-4f), 1e4f);
 	if (!std::isfinite(trackball.track.tra.Norm()))
 		trackball.track.tra = vcg::Point3f(0, 0, 0);
-
-	static QElapsedTimer lastLog;
-	if (!lastLog.isValid() || lastLog.elapsed() > 1000) {
-		lastLog.restart();
-		qDebug("SpaceMouse: t=(%.2f %.2f %.2f) r=(%.2f %.2f %.2f) sca=%g tra=(%g %g %g)",
-		       tx, ty, tz, rx, ry, rz, trackball.track.sca,
-		       trackball.track.tra[0], trackball.track.tra[1], trackball.track.tra[2]);
-	}
 
 	update();
 }
